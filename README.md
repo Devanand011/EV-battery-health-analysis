@@ -1,6 +1,6 @@
-# EV Battery Health Analyzer (V2 Web App)
+# EV Battery Health Analyzer 
 
-V2 includes a one-step web app on top of the ML pipeline:
+includes a one-step web app on top of the ML pipeline:
 
 - Dataset loader for NASA battery `.mat` files
 - Feature engineering for degradation trend signals
