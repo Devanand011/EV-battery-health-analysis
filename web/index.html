@@ -1,0 +1,517 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EV Battery Health Analysis</title>
+  <style>
+    :root {
+      --bg: #f2f4f7;
+      --bg-accent: #e7f0f7;
+      --card: #ffffff;
+      --text: #1a1d22;
+      --muted: #5a6a78;
+      --primary: #0b4f6c;
+      --primary-2: #136f8c;
+      --danger: #b23a2f;
+      --warning: #c9831c;
+      --ok: #2a7b44;
+      --line: #e2e7ed;
+      --ink: #252a31;
+      --sand: #f6f8fb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Palatino Linotype", "Book Antiqua", Palatino, "Times New Roman", serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 8% -10%, #ffffff 0%, transparent 60%),
+        radial-gradient(900px 520px at 92% 0%, #e9f1fb 0%, transparent 62%),
+        linear-gradient(180deg, #f3f6fb 0%, #eef2f7 100%);
+    }
+    .container { max-width: 1100px; margin: 28px auto; padding: 0 18px 40px; }
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 18px;
+      border-radius: 18px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 28px rgba(20, 40, 60, 0.08);
+    }
+    .hero h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: 0.2px; }
+    .hero p { margin: 6px 0 0; color: var(--muted); line-height: 1.5; }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--bg-accent);
+      color: var(--primary);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .hero-note {
+      background: var(--sand);
+      border: 1px dashed #d4dbe4;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 18px;
+      margin-top: 16px;
+      align-items: start;
+    }
+    .side-panel {
+      position: sticky;
+      top: 16px;
+      display: grid;
+      gap: 12px;
+    }
+    .side-card {
+      background: #111e2c;
+      color: #e8eef5;
+      border-radius: 16px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 26px rgba(10, 25, 40, 0.22);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .side-card h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #a9bdd3;
+    }
+    .side-card strong {
+      color: #ffffff;
+    }
+    .side-card + .side-card {
+      background: #142436;
+    }
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      margin: 16px 0;
+      align-items: center;
+    }
+    select, button {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: 14px;
+      background: #fff;
+    }
+    button {
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(0.96); }
+    .section-title {
+      margin: 18px 0 10px;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      box-shadow: 0 6px 16px rgba(10, 30, 50, 0.06);
+    }
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .card .value { font-size: 24px; font-weight: 700; color: var(--ink); }
+    .card .hint { font-size: 13px; color: var(--muted); line-height: 1.4; }
+    .cycle-controls {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    input[type="range"] { width: 100%; }
+    .charts { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    canvas {
+      width: 100%;
+      height: 220px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .legend { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--line);
+      text-align: right;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    .table-wrap {
+      max-height: 260px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #e9f1fb;
+      color: var(--primary);
+      margin-left: 6px;
+    }
+    .small { font-size: 12px; color: var(--muted); }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+    }
+    @media (max-width: 860px) {
+      .hero { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div>
+        <h1>EV Battery Health Analysis</h1>
+        <p>
+          This page explains battery health in everyday terms. It shows what the battery is doing now,
+          how fast it is wearing out, and how long it might last before it needs replacement.
+        </p>
+        <p class="small">
+          Data source: NASA battery cycling dataset. Predictions are model-based estimates from the same data.
+        </p>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="main">
+        <div class="toolbar">
+          <select id="batterySelect"></select>
+          <button id="refreshBtn">Refresh</button>
+          <button id="retrainBtn">Retrain</button>
+        </div>
+
+        <div class="section-title">At A Glance</div>
+        <div class="grid">
+          <div class="card">
+            <h3>Latest SOH (Prediction)</h3>
+            <div class="value" id="sohValue">-</div>
+            <div class="hint">Higher is better. 100% means like-new capacity.</div>
+          </div>
+          <div class="card">
+            <h3>Latest RUL (Prediction)</h3>
+            <div class="value" id="rulValue">-</div>
+            <div class="hint">Estimated cycles left before end-of-life threshold.</div>
+          </div>
+          <div class="card">
+            <h3>Latest Risk</h3>
+            <div class="value" id="riskValue">-</div>
+            <div class="hint">High risk means the cycle looks abnormal.</div>
+          </div>
+          <div class="card">
+            <h3>Model Accuracy (SOH MAE)</h3>
+            <div class="value" id="maeValue">-</div>
+            <div class="small" id="thresholdText"></div>
+          </div>
+        </div>
+
+        <div class="section-title">Cycle Inspector</div>
+        <div class="card" style="margin-bottom: 16px;">
+          <div class="cycle-controls">
+            <input type="range" id="cycleSlider" min="1" max="1" value="1" />
+            <div class="small" id="cycleLabel">Cycle: 1</div>
+          </div>
+          <div class="grid">
+            <div class="card"><h3>SOH (Actual)</h3><div class="value" id="cycleSohActual">-</div><div class="hint">Calculated from capacity.</div></div>
+            <div class="card"><h3>SOH (Predicted)</h3><div class="value" id="cycleSohPred">-</div><div class="hint">Model estimate.</div></div>
+            <div class="card"><h3>RUL (Actual)</h3><div class="value" id="cycleRulActual">-</div><div class="hint">Cycles left to EOL.</div></div>
+            <div class="card"><h3>RUL (Predicted)</h3><div class="value" id="cycleRulPred">-</div><div class="hint">Model estimate.</div></div>
+          </div>
+        </div>
+
+        <div class="section-title">Trends</div>
+        <div class="charts">
+          <div class="card">
+            <h3>Capacity Fade (Ah) <span class="pill">Measured</span></h3>
+            <canvas id="capacityChart" width="1000" height="220"></canvas>
+            <div class="legend">Blue line: measured capacity per cycle.</div>
+          </div>
+          <div class="card">
+            <h3>SOH Actual vs Predicted</h3>
+            <canvas id="sohChart" width="1000" height="220"></canvas>
+            <div class="legend">Blue: calculated SOH. Green: model prediction.</div>
+          </div>
+          <div class="card">
+            <h3>RUL Actual vs Predicted</h3>
+            <canvas id="rulChart" width="1000" height="220"></canvas>
+            <div class="legend">Orange: calculated RUL. Red: model prediction.</div>
+          </div>
+          <div class="card">
+            <h3>Cycle Table</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Cycle</th>
+                    <th>Capacity (Ah)</th>
+                    <th>SOH Actual</th>
+                    <th>SOH Pred</th>
+                    <th>RUL Actual</th>
+                    <th>RUL Pred</th>
+                    <th>Risk</th>
+                  </tr>
+                </thead>
+                <tbody id="cycleTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side-panel">
+        <div class="side-card">
+          <h3>Quick Meanings</h3>
+          <strong>SOH</strong> is current capacity compared to original capacity.<br />
+          <strong>RUL</strong> is cycles left before the battery hits end-of-life.<br />
+          <strong>Risk</strong> flags unusual cycles vs typical behavior.
+        </div>
+        <div class="side-card">
+          <h3>Definitions</h3>
+          <strong>SOH (State of Health)</strong>
+          If the battery started at 2.0 Ah and now delivers 1.6 Ah, SOH = 1.6 / 2.0 = 80%.
+          This is calculated from the dataset for past cycles, and also predicted for upcoming cycles.<br /><br />
+          <strong>RUL (Remaining Useful Life)</strong>
+          End-of-life (EOL) is when SOH drops below a threshold (default 80%).
+          RUL is the number of cycles left until that point. We show both calculated history and predictions.<br /><br />
+          <strong>Prediction vs Calculation</strong>
+          Calculations use measured capacity for completed cycles. Predictions estimate SOH and RUL from patterns
+          in voltage, current, temperature, and earlier cycles to give a forward-looking view.
+        </div>
+        <div class="side-card">
+          <h3>How The Model Works</h3>
+          <strong>Models</strong>
+          Two Random Forest regressors predict SOH and RUL. An Isolation Forest flags risky cycles (anomaly score).<br /><br />
+          <strong>Training</strong>
+          The model learns from NASA discharge cycles using engineered features like voltage, current, temperature,
+          cycle count, rolling capacity averages, and fade rate. One battery is held out for testing.<br /><br />
+          <strong>Prediction</strong>
+          For each cycle, the model uses those features to estimate SOH and RUL and assigns a risk level based on
+          how unusual the cycle looks compared to the training data.
+        </div>
+        <div class="side-card">
+          <h3>Practical Guidance</h3>
+          <strong>Warranty Awareness</strong>
+          Many EV warranties cover battery capacity down to a threshold (often around 70% SOH). Check your OEM terms
+          for exact limits and time/mileage coverage.<br /><br />
+          <strong>Service Signals</strong>
+          Consider a service check if SOH drops quickly, risk stays high for several cycles, or RUL falls sharply.<br /><br />
+          <strong>Owner Tips</strong>
+          Avoid frequent fast charging, extreme heat, and deep discharges to slow long-term degradation.
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const batterySelect = document.getElementById("batterySelect");
+    const sohValue = document.getElementById("sohValue");
+    const rulValue = document.getElementById("rulValue");
+    const riskValue = document.getElementById("riskValue");
+    const maeValue = document.getElementById("maeValue");
+    const thresholdText = document.getElementById("thresholdText");
+    const cycleSlider = document.getElementById("cycleSlider");
+    const cycleLabel = document.getElementById("cycleLabel");
+    const cycleSohActual = document.getElementById("cycleSohActual");
+    const cycleSohPred = document.getElementById("cycleSohPred");
+    const cycleRulActual = document.getElementById("cycleRulActual");
+    const cycleRulPred = document.getElementById("cycleRulPred");
+    const cycleTableBody = document.getElementById("cycleTableBody");
+    let currentSeries = null;
+
+    async function loadMetrics() {
+      const res = await fetch("/api/metrics");
+      const data = await res.json();
+      maeValue.textContent = data.metrics.soh_mae ? data.metrics.soh_mae.toFixed(4) : "-";
+      thresholdText.textContent = `EOL threshold: SOH <= ${data.eol_soh_threshold.toFixed(2)}`;
+    }
+
+    async function loadBatteries() {
+      const res = await fetch("/api/batteries");
+      const data = await res.json();
+      batterySelect.innerHTML = "";
+      data.batteries.forEach((id) => {
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = id;
+        batterySelect.appendChild(option);
+      });
+    }
+
+    function colorForRisk(risk) {
+      if (risk === "high") return "var(--danger)";
+      if (risk === "medium") return "var(--warning)";
+      return "var(--ok)";
+    }
+
+    function drawLineChart(canvasId, x, lines) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width;
+      const H = canvas.height;
+      const pad = 28;
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.strokeStyle = "#ece6db";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const y = pad + (i * (H - 2 * pad) / 4);
+        ctx.beginPath();
+        ctx.moveTo(pad, y);
+        ctx.lineTo(W - pad, y);
+        ctx.stroke();
+      }
+
+      const yAll = lines.flatMap((line) => line.y);
+      const xMin = Math.min(...x);
+      const xMax = Math.max(...x);
+      const yMin = Math.min(...yAll);
+      const yMax = Math.max(...yAll);
+      const sx = (v) => pad + ((v - xMin) / Math.max(1, (xMax - xMin))) * (W - 2 * pad);
+      const sy = (v) => H - pad - ((v - yMin) / Math.max(1e-9, (yMax - yMin))) * (H - 2 * pad);
+
+      lines.forEach((line) => {
+        ctx.strokeStyle = line.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        line.y.forEach((v, i) => {
+          const px = sx(x[i]);
+          const py = sy(v);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        });
+        ctx.stroke();
+      });
+    }
+
+    function updateCycleInspector(index) {
+      if (!currentSeries) return;
+      const i = Math.max(0, Math.min(index, currentSeries.cycle_number.length - 1));
+      cycleLabel.textContent = `Cycle: ${currentSeries.cycle_number[i]}`;
+      cycleSohActual.textContent = `${(currentSeries.soh_actual[i] * 100).toFixed(2)}%`;
+      cycleSohPred.textContent = `${(currentSeries.soh_pred[i] * 100).toFixed(2)}%`;
+      cycleRulActual.textContent = `${currentSeries.rul_actual_cycles[i].toFixed(1)} cycles`;
+      cycleRulPred.textContent = `${currentSeries.rul_pred_cycles[i].toFixed(1)} cycles`;
+    }
+
+    function renderCycleTable(series) {
+      const rows = series.cycle_number.map((cycle, i) => `
+        <tr>
+          <td>${cycle}</td>
+          <td>${series.capacity_ah[i].toFixed(4)}</td>
+          <td>${(series.soh_actual[i] * 100).toFixed(2)}%</td>
+          <td>${(series.soh_pred[i] * 100).toFixed(2)}%</td>
+          <td>${series.rul_actual_cycles[i].toFixed(1)}</td>
+          <td>${series.rul_pred_cycles[i].toFixed(1)}</td>
+          <td>${series.risk_level[i]}</td>
+        </tr>
+      `).join("");
+      cycleTableBody.innerHTML = rows;
+    }
+
+    async function loadBattery(id) {
+      const res = await fetch(`/api/battery/${id}`);
+      const data = await res.json();
+      sohValue.textContent = `${(data.latest.soh_pred * 100).toFixed(2)}%`;
+      rulValue.textContent = `${data.latest.rul_pred_cycles.toFixed(1)} cycles`;
+      riskValue.textContent = data.latest.risk_level.toUpperCase();
+      riskValue.style.color = colorForRisk(data.latest.risk_level);
+
+      const x = data.series.cycle_number;
+      currentSeries = data.series;
+      cycleSlider.min = 1;
+      cycleSlider.max = String(x.length);
+      cycleSlider.value = String(x.length);
+      updateCycleInspector(x.length - 1);
+      renderCycleTable(data.series);
+
+      drawLineChart("capacityChart", x, [{ y: data.series.capacity_ah, color: "#0a5f9a" }]);
+      drawLineChart("sohChart", x, [
+        { y: data.series.soh_actual, color: "#1e88e5" },
+        { y: data.series.soh_pred, color: "#2f7a3c" },
+      ]);
+      drawLineChart("rulChart", x, [
+        { y: data.series.rul_actual_cycles, color: "#d08b1f" },
+        { y: data.series.rul_pred_cycles, color: "#b63a2b" },
+      ]);
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", async () => {
+      await loadMetrics();
+      await loadBattery(batterySelect.value);
+    });
+
+    document.getElementById("retrainBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("retrainBtn");
+      btn.disabled = true;
+      btn.textContent = "Retraining...";
+      try {
+        await fetch("/api/retrain", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ test_battery: "B0007", eol_soh_threshold: 0.8, random_state: 42 }),
+        });
+        await loadMetrics();
+        await loadBattery(batterySelect.value);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Retrain";
+      }
+    });
+
+    batterySelect.addEventListener("change", () => loadBattery(batterySelect.value));
+    cycleSlider.addEventListener("input", () => {
+      updateCycleInspector(Number(cycleSlider.value) - 1);
+    });
+
+    (async function init() {
+      await loadMetrics();
+      await loadBatteries();
+      if (batterySelect.value) await loadBattery(batterySelect.value);
+    })();
+  </script>
+</body>
+</html>
